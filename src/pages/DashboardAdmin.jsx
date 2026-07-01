@@ -331,14 +331,14 @@ function DashboardAdmin() {
   }
 
   // HANDLE INPUT FORM
-  const handleBookFieldChange = (event) => {
+  const handleBookFieldChange = useCallback((event) => {
     const { name, value } = event.target
 
     setBookForm((currentForm) => ({
       ...currentForm,
       [name]: value,
     }))
-  }
+  }, [])
 
   // HANDLE UPLOAD COVER BUKU
   const handleCoverChange = (event) => {
@@ -607,11 +607,15 @@ function DashboardAdmin() {
     }
   }
 
-  const handleFieldChange = (e) => {
+  const handleFieldChange = useCallback((e) => {
     const { name, value } = e.target
     handleBookFieldChange(e)
     if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: '' }))
-  }
+  }, [fieldErrors, handleBookFieldChange])
+
+  const handleFieldChangeWithClear = useCallback((name) => (e) => {
+    handleFieldChange(e)
+  }, [handleFieldChange])
 
   const completionFields = ['judul', 'barcode', 'penulis', 'penerbit', 'tahun_terbit', 'stok', 'rak_id']
   const filledCount = completionFields.filter(f => bookForm[f] && String(bookForm[f]).trim()).length
@@ -701,39 +705,31 @@ function DashboardAdmin() {
     }
   }
 
-  const renderBookFormCard = () => {
-    const isEditing = !!editingBookId
-    const btnLabel = isSubmitting ? 'Menyimpan...' : isEditing ? 'Perbarui Buku' : 'Simpan Buku'
-
-    const handleFieldChangeWithClear = (name) => (e) => {
-      handleFieldChange(e)
-      if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: '' }))
-    }
-
-    const berkasOptions = racks.map(r => ({ value: String(r.id), label: `${r.nama_rak} (${r.tipe_rak})` }))
-
-    const descLength = bookForm.deskripsi?.length || 0
-
-    const SectionCard = ({ icon, title, desc, children, delay = 0 }) => (
-      <div className="afbc-section-card" style={{ animationDelay: `${delay}s` }}>
-        <div className="afbc-section-head">
-          <span className="afbc-section-icon" dangerouslySetInnerHTML={{ __html: icon }} />
-          <div className="afbc-section-head-text">
-            <span className="afbc-section-title">{title}</span>
-            {desc && <span className="afbc-section-desc">{desc}</span>}
-          </div>
-        </div>
-        <div className="afbc-section-body">
-          {children}
+  const SectionCard = useMemo(() => ({ icon, title, desc, children, delay = 0 }) => (
+    <div className="afbc-section-card" style={{ animationDelay: `${delay}s` }}>
+      <div className="afbc-section-head">
+        <span className="afbc-section-icon" dangerouslySetInnerHTML={{ __html: icon }} />
+        <div className="afbc-section-head-text">
+          <span className="afbc-section-title">{title}</span>
+          {desc && <span className="afbc-section-desc">{desc}</span>}
         </div>
       </div>
-    )
+      <div className="afbc-section-body">
+        {children}
+      </div>
+    </div>
+  ), [])
 
-    const BookOpenIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
-    const CalendarIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
-    const ImageIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
-    const FileTextIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
-    const LibraryIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>'
+  const BookOpenIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+  const CalendarIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+  const ImageIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+  const FileTextIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+
+  const renderBookFormCard = useMemo(() => {
+    const isEditing = !!editingBookId
+    const btnLabel = isSubmitting ? 'Menyimpan...' : isEditing ? 'Perbarui Buku' : 'Simpan Buku'
+    const berkasOptions = racks.map(r => ({ value: String(r.id), label: `${r.nama_rak} (${r.tipe_rak})` }))
+    const descLength = bookForm.deskripsi?.length || 0
 
     return (
       <div className="afbc-wrapper">
@@ -966,7 +962,7 @@ function DashboardAdmin() {
         )}
       </div>
     )
-  }
+  }, [editingBookId, isSubmitting, bookForm.judul, bookForm.barcode, bookForm.penulis, bookForm.penerbit, bookForm.tahun_terbit, bookForm.stok, bookForm.rak_id, bookForm.deskripsi, fieldErrors, racks, isLoadingRacks, dragOver, coverPreview, formMessage, formMessageTone, handleFieldChangeWithClear, handleSubmit, handleSaveDraft, setActiveMenu, resetBookForm, coverInputRef, handleDragOver, handleDragLeave, handleDrop, handleCoverChange, setShowAddRakModal, isAddingRak, selectedRack])
 
   // RENDER HALAMAN BERANDA
   const renderBeranda = () => {
@@ -1410,10 +1406,10 @@ function DashboardAdmin() {
           )}
           {activeMenu === 'beranda' && renderBeranda()}
           {activeMenu === 'profil' && renderProfil()}
-          {activeMenu === 'tambah-buku' && renderBookFormCard()}
+          {activeMenu === 'tambah-buku' && renderBookFormCard}
           {activeMenu === 'update-buku' && (
             <>
-              {editingBookId && renderBookFormCard()}
+              {editingBookId && renderBookFormCard}
               <AdminManageBooks
                 books={books}
                 racks={racks}
