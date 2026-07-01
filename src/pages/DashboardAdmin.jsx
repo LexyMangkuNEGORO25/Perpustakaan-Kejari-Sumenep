@@ -6,6 +6,7 @@ const menus = [
   { id: 'beranda', label: 'Beranda', icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>', description: 'Ringkasan statistik dan aktivitas perpustakaan.' },
   { id: 'tambah-buku', label: 'Tambah Buku', icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="6" x2="12" y2="14"/><line x1="8" y1="10" x2="16" y2="10"/></svg>', description: 'Input koleksi baru ke katalog perpustakaan.' },
   { id: 'update-buku', label: 'Update Buku', icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="M15 5l4 4"/></svg>', description: 'Perbarui data buku yang sudah tersimpan.' },
+  { id: 'profil', label: 'Profil', icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', description: 'Kelola informasi akun dan keamanan.' },
 ]
 
 const initialBookForm = {
@@ -79,6 +80,17 @@ function DashboardAdmin() {
   const [totalMembers, setTotalMembers] = useState(0)
   const [allBorrows, setAllBorrows] = useState([])
   const [isLoadingBeranda, setIsLoadingBeranda] = useState(true)
+
+  // STATE PROFIL
+  const [profilEmail, setProfilEmail] = useState(currentUser?.email || '')
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
+  const [profilEmailMsg, setProfilEmailMsg] = useState('')
+  const [profilEmailTone, setProfilEmailTone] = useState('info')
+
+  const [passwordForm, setPasswordForm] = useState({ current: '', baru: '', confirm: '' })
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [profilPasswordMsg, setProfilPasswordMsg] = useState('')
+  const [profilPasswordTone, setProfilPasswordTone] = useState('info')
 
   // MENU AKTIF
   const currentMenu = menus.find((menu) => menu.id === activeMenu) || menus[0]
@@ -1124,6 +1136,167 @@ function DashboardAdmin() {
     )
   }
 
+  // ── RENDER PROFIL ADMIN ──
+  const renderProfil = () => {
+    const handleUpdateEmail = async (e) => {
+      e.preventDefault()
+      try {
+        setIsUpdatingEmail(true)
+        setProfilEmailMsg('')
+        const res = await API.put('/users/profile', { email: profilEmail.trim() })
+        if (res.data?.success) {
+          const updatedUser = { ...currentUser, email: profilEmail.trim() }
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+          setProfilEmailMsg('Email berhasil diperbarui.')
+          setProfilEmailTone('success')
+        } else {
+          setProfilEmailMsg(res.data?.message || 'Gagal memperbarui email.')
+          setProfilEmailTone('error')
+        }
+      } catch (err) {
+        setProfilEmailMsg(err.response?.data?.message || 'Gagal memperbarui email.')
+        setProfilEmailTone('error')
+      } finally {
+        setIsUpdatingEmail(false)
+      }
+    }
+
+    const handleChangePassword = async (e) => {
+      e.preventDefault()
+      if (passwordForm.baru !== passwordForm.confirm) {
+        setProfilPasswordMsg('Konfirmasi password baru tidak cocok.')
+        setProfilPasswordTone('error')
+        return
+      }
+      if (passwordForm.baru.length < 6) {
+        setProfilPasswordMsg('Password baru minimal 6 karakter.')
+        setProfilPasswordTone('error')
+        return
+      }
+      try {
+        setIsUpdatingPassword(true)
+        setProfilPasswordMsg('')
+        const res = await API.put('/users/password', {
+          password_lama: passwordForm.current,
+          password_baru: passwordForm.baru,
+        })
+        if (res.data?.success) {
+          setProfilPasswordMsg('Password berhasil diubah.')
+          setProfilPasswordTone('success')
+          setPasswordForm({ current: '', baru: '', confirm: '' })
+        } else {
+          setProfilPasswordMsg(res.data?.message || 'Gagal mengubah password.')
+          setProfilPasswordTone('error')
+        }
+      } catch (err) {
+        setProfilPasswordMsg(err.response?.data?.message || 'Gagal mengubah password.')
+        setProfilPasswordTone('error')
+      } finally {
+        setIsUpdatingPassword(false)
+      }
+    }
+
+    return (
+      <div className="adm-profil">
+        <div className="adm-profil-header">
+          <div className="adm-profil-avatar">
+            {currentUser?.nama?.charAt(0)?.toUpperCase() || 'A'}
+          </div>
+          <div className="adm-profil-headline">
+            <h3>{currentUser?.nama || 'Admin'}</h3>
+            <p>{currentUser?.email || '-'}</p>
+            <span className="adm-profil-badge">Administrator</span>
+          </div>
+        </div>
+
+        <div className="adm-profil-grid">
+          {/* ── UPDATE EMAIL ── */}
+          <section className="adm-card adm-profil-card">
+            <div className="adm-card-head">
+              <h5>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
+                Update Email
+              </h5>
+            </div>
+            <form onSubmit={handleUpdateEmail} className="adm-profil-form">
+              <div className="adm-profil-field">
+                <label>Email</label>
+                <input
+                  type="email"
+                  className="adm-profil-input"
+                  value={profilEmail}
+                  onChange={(e) => setProfilEmail(e.target.value)}
+                  required
+                  disabled={isUpdatingEmail}
+                />
+              </div>
+              {profilEmailMsg && (
+                <div className={`adm-profil-msg adm-profil-msg--${profilEmailTone}`}>{profilEmailMsg}</div>
+              )}
+              <button type="submit" className="adm-btn adm-btn--primary" disabled={isUpdatingEmail}>
+                {isUpdatingEmail ? 'Menyimpan...' : 'Simpan Email'}
+              </button>
+            </form>
+          </section>
+
+          {/* ── GANTI PASSWORD ── */}
+          <section className="adm-card adm-profil-card">
+            <div className="adm-card-head">
+              <h5>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Ganti Password
+              </h5>
+            </div>
+            <form onSubmit={handleChangePassword} className="adm-profil-form">
+              <div className="adm-profil-field">
+                <label>Password Saat Ini</label>
+                <input
+                  type="password"
+                  className="adm-profil-input"
+                  value={passwordForm.current}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, current: e.target.value }))}
+                  required
+                  disabled={isUpdatingPassword}
+                  autoComplete="current-password"
+                />
+              </div>
+              <div className="adm-profil-field">
+                <label>Password Baru</label>
+                <input
+                  type="password"
+                  className="adm-profil-input"
+                  value={passwordForm.baru}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, baru: e.target.value }))}
+                  required
+                  disabled={isUpdatingPassword}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="adm-profil-field">
+                <label>Konfirmasi Password Baru</label>
+                <input
+                  type="password"
+                  className="adm-profil-input"
+                  value={passwordForm.confirm}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, confirm: e.target.value }))}
+                  required
+                  disabled={isUpdatingPassword}
+                  autoComplete="new-password"
+                />
+              </div>
+              {profilPasswordMsg && (
+                <div className={`adm-profil-msg adm-profil-msg--${profilPasswordTone}`}>{profilPasswordMsg}</div>
+              )}
+              <button type="submit" className="adm-btn adm-btn--primary" disabled={isUpdatingPassword}>
+                {isUpdatingPassword ? 'Menyimpan...' : 'Ubah Password'}
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`adm-shell${darkMode ? ' adm-shell--dark' : ''}`}>
       {/* ── SIDEBAR ── */}
@@ -1239,6 +1412,7 @@ function DashboardAdmin() {
             </div>
           )}
           {activeMenu === 'beranda' && renderBeranda()}
+          {activeMenu === 'profil' && renderProfil()}
           {activeMenu === 'tambah-buku' && renderBookFormCard()}
           {activeMenu === 'update-buku' && (
             <>
