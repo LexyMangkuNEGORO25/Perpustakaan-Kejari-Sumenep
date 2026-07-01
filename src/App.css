@@ -10472,8 +10472,7 @@ table {
    ------------------------------------------- */
 
 /* --- Global spacings --- */
-.borrower-main-content,
-.adm-main {
+.borrower-main-content {
   padding-top: var(--nav-height);
 }
 
@@ -10945,7 +10944,6 @@ table {
 
   .adm-main {
     margin-left: 0;
-    padding-top: var(--nav-height);
   }
 
   .adm-shell {
