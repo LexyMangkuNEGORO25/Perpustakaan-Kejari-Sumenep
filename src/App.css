@@ -12785,29 +12785,7 @@ table {
   color: #9CA3AF;
 }
 
-/* ── Profile Button ── */
-.nv-profile {
-  position: relative;
-}
-
-.nv-profile-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 16px 4px 4px;
-  border-radius: 18px;
-  background: #FAFAFA;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.nv-profile-btn:hover {
-  background: #fff;
-  border-color: #E5E7EB;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
+/* ── Avatar (shared) ── */
 .nv-avatar {
   width: 36px;
   height: 36px;
@@ -12823,11 +12801,11 @@ table {
   text-transform: uppercase;
 }
 
-.nv-profile-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  max-width: 130px;
+.nv-avatar--sm {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  font-size: 12px;
 }
 
 .nv-profile-name {
@@ -12840,18 +12818,34 @@ table {
   text-overflow: ellipsis;
 }
 
-.nv-profile-email {
-  font-size: 11px;
-  color: #9CA3AF;
-  line-height: 1.2;
+.nv-profile-name--inline {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F2937;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.nv-profile-role {
+/* ── Compact Profile (inline avatar + name + badge + logout) ── */
+.nv-compact-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 4px 8px;
+  border-radius: 18px;
+  background: #FAFAFA;
+  border: 1px solid transparent;
+  transition: all 0.25s ease;
+}
+
+.nv-compact-profile:hover {
+  background: #fff;
+  border-color: #E5E7EB;
+}
+
+/* ── Role Badge ── */
+.nv-role-badge {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 3px 8px;
@@ -12861,127 +12855,115 @@ table {
   white-space: nowrap;
 }
 
-.nv-profile-arrow {
-  flex-shrink: 0;
-  color: #9CA3AF;
-  transition: transform 0.25s ease;
+.nv-role-badge--admin {
+  background: #FFF9E6;
+  color: #B8860B;
 }
 
-.nv-profile-arrow--open {
-  transform: rotate(180deg);
-}
-
-/* ── Profile Dropdown ── */
-.nv-dropdown--profile {
-  min-width: 240px;
-  right: 0;
-}
-
-.nv-dropdown-profile-header {
-  display: flex;
+/* ── Logout Button ── */
+.nv-logout-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-bottom: 1px solid #F3F4F6;
-  margin-bottom: 4px;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #EF4444;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
-.nv-dropdown-avatar {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #2E7D32, #3F9A4A);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
+.nv-logout-btn:hover {
+  background: #FFE8E8;
+}
+
+.nv-logout-btn svg {
+  flex-shrink: 0;
+}
+
+/* ── Confirm Dialog ── */
+.nv-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  animation: nvFadeIn 0.2s ease;
 }
 
-.nv-dropdown-profile-info {
-  flex: 1;
-  min-width: 0;
+.nv-confirm-dialog {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  width: 90%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: nvScaleIn 0.2s ease;
 }
 
-.nv-dropdown-name {
-  font-size: 14px;
+.nv-confirm-icon {
+  margin-bottom: 16px;
+}
+
+.nv-confirm-title {
+  font-size: 16px;
   font-weight: 600;
   color: #1F2937;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 0 0 24px;
+  line-height: 1.4;
 }
 
-.nv-dropdown-email {
-  font-size: 12px;
-  color: #9CA3AF;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nv-dropdown-menu {
+.nv-confirm-actions {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 12px;
+  justify-content: center;
 }
 
-.nv-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+.nv-confirm-btn {
+  flex: 1;
+  padding: 11px 20px;
   border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nv-confirm-btn--cancel {
+  background: #F3F4F6;
   color: #4B5563;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-  text-align: left;
 }
 
-.nv-dropdown-item:hover {
-  background: #F4F8F5;
-  color: #2E7D32;
+.nv-confirm-btn--cancel:hover {
+  background: #E5E7EB;
 }
 
-.nv-dropdown-item svg {
-  flex-shrink: 0;
+.nv-confirm-btn--confirm {
+  background: #EF4444;
+  color: #fff;
 }
 
-.nv-dropdown-footer {
-  border-top: 1px solid #F3F4F6;
-  margin-top: 4px;
-  padding-top: 4px;
+.nv-confirm-btn--confirm:hover {
+  background: #DC2626;
 }
 
-.nv-dropdown-logout {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #EF4444;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-  text-align: left;
+@keyframes nvFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.nv-dropdown-logout:hover {
-  background: #FEF2F2;
+@keyframes nvScaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 /* ── Hamburger ── */
@@ -13330,16 +13312,16 @@ table {
     height: 36px;
   }
 
-  .nv-profile-btn {
-    padding: 3px 10px 3px 3px;
+  .nv-compact-profile {
     gap: 6px;
+    padding: 3px 3px 3px 6px;
   }
 
-  .nv-profile-info {
+  .nv-profile-name--inline {
     display: none;
   }
 
-  .nv-profile-role {
+  .nv-role-badge {
     display: none;
   }
 

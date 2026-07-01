@@ -191,8 +191,6 @@ function DashboardPeminjam() {
   }, [allBooks])
 
   const handleLogout = () => {
-    const confirmed = window.confirm('Apakah Anda yakin ingin keluar?')
-    if (!confirmed) return
     localStorage.removeItem('currentUser')
     localStorage.removeItem('token')
     navigate('/login')

@@ -33,9 +33,8 @@ export default function Navbar({
   const [showMobileNav, setShowMobileNav] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [showNotifDropdown, setShowNotifDropdown] = useState(false)
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const notifBellRef = useRef(null)
-  const profileMenuRef = useRef(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -44,20 +43,28 @@ export default function Navbar({
   }, [])
 
   useEffect(() => {
-    if (!showNotifDropdown && !showProfileMenu) return
+    if (!showNotifDropdown) return
     const handler = (e) => {
-      if (showNotifDropdown && notifBellRef.current && !notifBellRef.current.contains(e.target)) {
+      if (notifBellRef.current && !notifBellRef.current.contains(e.target)) {
         setShowNotifDropdown(false)
-      }
-      if (showProfileMenu && profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
-        setShowProfileMenu(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [showNotifDropdown, showProfileMenu])
+  }, [showNotifDropdown])
 
   const avatarLetter = currentUser?.nama?.charAt(0)?.toUpperCase() || 'U'
+  const nama = currentUser?.nama || 'User'
+
+  const handleLogoutClick = () => {
+    setShowNotifDropdown(false)
+    setShowLogoutConfirm(true)
+  }
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false)
+    onLogout()
+  }
 
   return (
     <>
@@ -93,12 +100,6 @@ export default function Navbar({
           </div>
 
           <div className="nv-right">
-            <button type="button" className="nv-icon-btn nv-search-btn" title="Cari buku">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </button>
-
             <div className="nv-notif" ref={notifBellRef}>
               <button type="button" className="nv-icon-btn" onClick={() => setShowNotifDropdown(v => !v)} title="Notifikasi">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -131,52 +132,16 @@ export default function Navbar({
               )}
             </div>
 
-            <div className="nv-profile" ref={profileMenuRef}>
-              <button type="button" className="nv-profile-btn" onClick={() => setShowProfileMenu(v => !v)}>
-                <div className="nv-avatar">{avatarLetter}</div>
-                <div className="nv-profile-info">
-                  <span className="nv-profile-name">{currentUser?.nama || 'User'}</span>
-                  <span className="nv-profile-email">{currentUser?.email?.length > 25 ? currentUser?.email?.substring(0, 22) + '...' : currentUser?.email || '-'}</span>
-                </div>
-                <span className="nv-profile-role">Anggota</span>
-                <svg className={`nv-profile-arrow${showProfileMenu ? ' nv-profile-arrow--open' : ''}`} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
+            <div className="nv-compact-profile">
+              <div className="nv-avatar nv-avatar--sm">{avatarLetter}</div>
+              <span className="nv-profile-name nv-profile-name--inline">{nama}</span>
+              <span className="nv-role-badge">Anggota</span>
+              <button type="button" className="nv-logout-btn" onClick={handleLogoutClick} title="Keluar">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
+                <span>Keluar</span>
               </button>
-
-              {showProfileMenu && (
-                <div className="nv-dropdown nv-dropdown--profile">
-                  <div className="nv-dropdown-profile-header">
-                    <div className="nv-dropdown-avatar">{avatarLetter}</div>
-                    <div className="nv-dropdown-profile-info">
-                      <strong className="nv-dropdown-name">{currentUser?.nama || 'User'}</strong>
-                      <span className="nv-dropdown-email">{currentUser?.email || '-'}</span>
-                    </div>
-                  </div>
-                  <div className="nv-dropdown-menu">
-                    <button type="button" className="nv-dropdown-item" onClick={() => { onSectionChange('profil'); setShowProfileMenu(false) }}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      Profil Saya
-                    </button>
-                    <button type="button" className="nv-dropdown-item" onClick={() => { setShowProfileMenu(false) }}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                      Pengaturan
-                    </button>
-                    <button type="button" className="nv-dropdown-item" onClick={() => { onSectionChange('riwayat'); setShowProfileMenu(false) }}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                      Riwayat Peminjaman
-                    </button>
-                  </div>
-                  <div className="nv-dropdown-footer">
-                    <button type="button" className="nv-dropdown-logout" onClick={() => { onLogout(); setShowProfileMenu(false) }}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-                      </svg>
-                      Keluar
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             <button type="button" className="nv-hamburger" onClick={() => setShowMobileNav(v => !v)} aria-label="Buka navigasi">
@@ -230,19 +195,8 @@ export default function Navbar({
             ))}
           </nav>
           <div className="nv-drawer-divider" />
-          <div className="nv-drawer-secondary">
-            <button type="button" className="nv-drawer-link" onClick={() => { setShowMobileNav(false) }}>
-              <span className="nv-drawer-link-icon">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-              </span>
-              <span className="nv-drawer-link-label">Pengaturan</span>
-            </button>
-          </div>
           <div className="nv-drawer-footer">
-            <button type="button" className="nv-drawer-logout-btn" onClick={() => { onLogout(); setShowMobileNav(false) }}>
+            <button type="button" className="nv-drawer-logout-btn" onClick={() => { setShowMobileNav(false); handleLogoutClick() }}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
               </svg>
@@ -256,6 +210,23 @@ export default function Navbar({
           </div>
         </div>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="nv-confirm-overlay" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="nv-confirm-dialog" onClick={e => e.stopPropagation()}>
+            <div className="nv-confirm-icon">
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#e53e3e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </div>
+            <h3 className="nv-confirm-title">Apakah Anda yakin ingin keluar?</h3>
+            <div className="nv-confirm-actions">
+              <button type="button" className="nv-confirm-btn nv-confirm-btn--cancel" onClick={() => setShowLogoutConfirm(false)}>Batal</button>
+              <button type="button" className="nv-confirm-btn nv-confirm-btn--confirm" onClick={confirmLogout}>Keluar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
