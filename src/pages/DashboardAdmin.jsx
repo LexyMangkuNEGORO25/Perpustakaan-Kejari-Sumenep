@@ -620,30 +620,30 @@ function DashboardAdmin() {
   // Komponen Field stabil — pakai useMemo agar tidak re-mount tiap render
   const Field = useMemo(() => function FormField({ name, label, type = 'text', required, options, isTextarea, isSelect, placeholder, min, max, icon, disabled, value, error, onChange, submitting, extraButton }) {
     const id = `af-${name}`
-    const cls = ['addbook-field', error && 'has-error', isTextarea && 'is-textarea'].filter(Boolean).join(' ')
+    const cls = ['afbc-field', error && 'afbc-field--error', isTextarea && 'afbc-field--textarea'].filter(Boolean).join(' ')
     const shared = { id, name, value: value || '', onChange, required, disabled: disabled || submitting }
 
     const renderLabel = () => (
-      <label htmlFor={id} className="addfield-label">{label}{required && <span className="required-star">*</span>}</label>
+      <label htmlFor={id} className="afbc-field-label">{label}{required && <span className="afbc-required">*</span>}</label>
     )
 
     if (isSelect) {
       return (
         <div className={cls}>
           {renderLabel()}
-          <div className="addfield-input-wrap">
-            {icon && <span className="addfield-icon">{icon}</span>}
-            <select {...shared} className="addfield-input">
+          <div className="afbc-field-wrap">
+            {icon && <span className="afbc-field-icon">{icon}</span>}
+            <select {...shared} className="afbc-field-input">
               <option value="">{placeholder || `Pilih ${label}`}</option>
               {options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             {extraButton && (
-              <button type="button" className="addfield-extra-btn" onClick={extraButton.onClick} title={extraButton.title} disabled={submitting}>
+              <button type="button" className="afbc-field-extra" onClick={extraButton.onClick} title={extraButton.title} disabled={submitting}>
                 {extraButton.label}
               </button>
             )}
           </div>
-          {error && <span className="addfield-err">{error}</span>}
+          {error && <span className="afbc-field-err">{error}</span>}
         </div>
       )
     }
@@ -652,10 +652,10 @@ function DashboardAdmin() {
       return (
         <div className={cls}>
           {renderLabel()}
-          <div className="addfield-input-wrap">
-            <textarea {...shared} className="addfield-input" placeholder="Tulis sinopsis buku..." rows={4} />
+          <div className="afbc-field-wrap">
+            <textarea {...shared} className="afbc-field-input" placeholder="Tulis sinopsis buku..." rows={4} />
           </div>
-          {error && <span className="addfield-err">{error}</span>}
+          {error && <span className="afbc-field-err">{error}</span>}
         </div>
       )
     }
@@ -663,11 +663,11 @@ function DashboardAdmin() {
     return (
       <div className={cls}>
         {renderLabel()}
-        <div className="addfield-input-wrap">
-          {icon && <span className="addfield-icon">{icon}</span>}
-          <input {...shared} type={type} className="addfield-input" placeholder=" " min={min} max={max} />
+        <div className="afbc-field-wrap">
+          {icon && <span className="afbc-field-icon">{icon}</span>}
+          <input {...shared} type={type} className="afbc-field-input" placeholder=" " min={min} max={max} />
         </div>
-        {error && <span className="addfield-err">{error}</span>}
+        {error && <span className="afbc-field-err">{error}</span>}
       </div>
     )
   }, [])
@@ -714,66 +714,58 @@ function DashboardAdmin() {
 
     const descLength = bookForm.deskripsi?.length || 0
 
+    const SectionCard = ({ icon, title, desc, children, delay = 0 }) => (
+      <div className="afbc-section-card" style={{ animationDelay: `${delay}s` }}>
+        <div className="afbc-section-head">
+          <span className="afbc-section-icon" dangerouslySetInnerHTML={{ __html: icon }} />
+          <div className="afbc-section-head-text">
+            <span className="afbc-section-title">{title}</span>
+            {desc && <span className="afbc-section-desc">{desc}</span>}
+          </div>
+        </div>
+        <div className="afbc-section-body">
+          {children}
+        </div>
+      </div>
+    )
+
+    const BookOpenIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+    const CalendarIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+    const ImageIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+    const FileTextIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+    const LibraryIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>'
+
     return (
-      <div className="premium-addbook">
+      <div className="afbc-wrapper">
         {/* BREADCRUMB */}
-        <div className="premium-breadcrumb">
-          <a href="#" onClick={(e) => { e.preventDefault(); setActiveMenu('beranda') }}>Dashboard</a>
-          <span className="premium-breadcrumb-sep">/</span>
-          <a href="#" onClick={(e) => e.preventDefault()}>Manajemen Buku</a>
-          <span className="premium-breadcrumb-sep">/</span>
-          <span className="active">Tambah Buku</span>
+        <div className="afbc-breadcrumb">
+          <button type="button" className="afbc-breadcrumb-link" onClick={() => setActiveMenu('beranda')}>Dashboard</button>
+          <span className="afbc-breadcrumb-sep">/</span>
+          <span className="afbc-breadcrumb-current">Tambah Buku</span>
         </div>
 
-        {/* STATS ROW */}
-        <div className="premium-stats-row">
-          <div className="premium-stat-card">
-            <div className="premium-stat-icon premium-stat-icon--navy">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        {/* LAYOUT: FORM + SIDEBAR */}
+        <div className="afbc-layout">
+          <div className="afbc-main">
+            {/* HEADER CARD */}
+            <div className="afbc-card afbc-card--header">
+              <div className="afbc-header-left">
+                <div className="afbc-header-icon">
+                  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="6" x2="12" y2="14"/><line x1="8" y1="10" x2="16" y2="10"/></svg>
+                </div>
+                <div className="afbc-header-text">
+                  <h1 className="afbc-header-title">{isEditing ? 'Edit Buku' : 'Tambah Buku Baru'}</h1>
+                  <p className="afbc-header-desc">{isEditing ? 'Perbarui informasi bibliografi dan inventaris buku.' : 'Lengkapi informasi buku yang akan ditambahkan ke perpustakaan.'}</p>
+                </div>
+              </div>
+              <div className="afbc-header-right">
+                <span className="afbc-header-badge">Admin</span>
+              </div>
             </div>
-            <div className="premium-stat-body">
-              <span className="premium-stat-value">{books.length}</span>
-              <span className="premium-stat-label">Total Buku</span>
-            </div>
-          </div>
-          <div className="premium-stat-card">
-            <div className="premium-stat-icon premium-stat-icon--gold">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            </div>
-            <div className="premium-stat-body">
-              <span className="premium-stat-value">{racks.length}</span>
-              <span className="premium-stat-label">Total Kategori</span>
-            </div>
-          </div>
-          <div className="premium-stat-card">
-            <div className="premium-stat-icon premium-stat-icon--green">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            </div>
-            <div className="premium-stat-body">
-              <span className="premium-stat-value">-</span>
-              <span className="premium-stat-label">Ditambahkan Hari Ini</span>
-            </div>
-          </div>
-        </div>
 
-        {/* MAIN CARD */}
-        <div className="premium-card">
-          {/* CARD HEADER */}
-          <div className="premium-card-header">
-            <div className="premium-card-header-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="6" x2="12" y2="14"/><line x1="8" y1="10" x2="16" y2="10"/></svg>
-            </div>
-            <div className="premium-card-header-text">
-              <h2>{isEditing ? 'Edit Buku' : 'Tambah Buku Baru'}</h2>
-              <p>{isEditing ? 'Perbarui informasi bibliografi dan inventaris buku.' : 'Lengkapi informasi bibliografi untuk menambahkan koleksi baru ke perpustakaan.'}</p>
-            </div>
-          </div>
-
-          {/* FORM MESSAGE */}
-          {formMessage && (
-            <div style={{ padding: '0 32px', marginTop: 20 }}>
-              <div className={`premium-toast premium-toast--${formMessageTone}`}>
-                <span className="premium-toast-icon" dangerouslySetInnerHTML={{
+            {formMessage && (
+              <div className={`afbc-toast afbc-toast--${formMessageTone}`}>
+                <span className="afbc-toast-icon" dangerouslySetInnerHTML={{
                   __html: formMessageTone === 'success'
                     ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
                     : formMessageTone === 'error'
@@ -782,145 +774,130 @@ function DashboardAdmin() {
                 }} />
                 <span>{formMessage}</span>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* CARD BODY */}
-          <div className="premium-card-body">
-            {/* ─── LEFT: FORM ─── */}
-            <div className="premium-form-main" ref={formContainerRef}>
-              <form id="premium-form" onSubmit={handleSubmit} noValidate autoComplete="off">
-                {/* ── INFORMASI BUKU ── */}
-                <div className="premium-form-section">
-                  <div className="premium-section-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Informasi Buku</div>
-                  <div className="premium-form-grid">
-                    <Field name="judul" label="Judul Buku" required value={bookForm.judul} error={fieldErrors.judul} onChange={handleFieldChangeWithClear('judul')} submitting={isSubmitting} />
-                    <Field name="barcode" label="ISBN" required placeholder="978-602-xxxx" value={bookForm.barcode} error={fieldErrors.barcode} onChange={handleFieldChangeWithClear('barcode')} submitting={isSubmitting} />
-                    <Field name="penulis" label="Penulis" required value={bookForm.penulis} error={fieldErrors.penulis} onChange={handleFieldChangeWithClear('penulis')} submitting={isSubmitting} />
-                    <Field name="penerbit" label="Penerbit" value={bookForm.penerbit} error={fieldErrors.penerbit} onChange={handleFieldChangeWithClear('penerbit')} submitting={isSubmitting} />
-                  </div>
+            <form id="afbc-form" onSubmit={handleSubmit} noValidate autoComplete="off">
+              <SectionCard icon={BookOpenIcon} title="Informasi Buku" desc="Data bibliografi dasar buku" delay={0.05}>
+                <div className="afbc-grid">
+                  <Field name="judul" label="Judul Buku" required value={bookForm.judul} error={fieldErrors.judul} onChange={handleFieldChangeWithClear('judul')} submitting={isSubmitting} />
+                  <Field name="barcode" label="ISBN / Barcode" required placeholder="978-602-xxxx" value={bookForm.barcode} error={fieldErrors.barcode} onChange={handleFieldChangeWithClear('barcode')} submitting={isSubmitting} />
+                  <Field name="penulis" label="Penulis" required value={bookForm.penulis} error={fieldErrors.penulis} onChange={handleFieldChangeWithClear('penulis')} submitting={isSubmitting} />
+                  <Field name="penerbit" label="Penerbit" value={bookForm.penerbit} error={fieldErrors.penerbit} onChange={handleFieldChangeWithClear('penerbit')} submitting={isSubmitting} />
                 </div>
+              </SectionCard>
 
-                {/* ── DETAIL PUBLIKASI ── */}
-                <div className="premium-form-section">
-                  <div className="premium-section-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Detail Publikasi</div>
-                  <div className="premium-form-grid">
-                    <Field name="tahun_terbit" label="Tahun Terbit" type="number" min={1900} max={2100} value={bookForm.tahun_terbit} error={fieldErrors.tahun_terbit} onChange={handleFieldChangeWithClear('tahun_terbit')} submitting={isSubmitting} />
-                    <Field name="stok" label="Jumlah Stok" type="number" min={0} required value={bookForm.stok} error={fieldErrors.stok} onChange={handleFieldChangeWithClear('stok')} submitting={isSubmitting} />
-                    <div className="premium-field--full premium-rak-row">
-                      <div className="premium-rak-select">
-                        <Field name="rak_id" label="Rak Buku" isSelect required options={berkasOptions} placeholder={isLoadingRacks ? 'Memuat...' : 'Pilih rak'} value={bookForm.rak_id} error={fieldErrors.rak_id} onChange={handleFieldChangeWithClear('rak_id')} submitting={isSubmitting} disabled={isLoadingRacks} />
+              <SectionCard icon={CalendarIcon} title="Detail Publikasi" desc="Informasi terbit dan stok buku" delay={0.1}>
+                <div className="afbc-grid">
+                  <Field name="tahun_terbit" label="Tahun Terbit" type="number" min={1900} max={2100} value={bookForm.tahun_terbit} error={fieldErrors.tahun_terbit} onChange={handleFieldChangeWithClear('tahun_terbit')} submitting={isSubmitting} />
+                  <Field name="stok" label="Jumlah Stok" type="number" min={0} required value={bookForm.stok} error={fieldErrors.stok} onChange={handleFieldChangeWithClear('stok')} submitting={isSubmitting} />
+                  <div className="afbc-field-full">
+                    <div className="afbc-rak-row">
+                      <div className="afbc-rak-select">
+                        <Field name="rak_id" label="Rak Buku" isSelect required options={berkasOptions} placeholder={isLoadingRacks ? 'Memuat...' : 'Pilih rak buku'} value={bookForm.rak_id} error={fieldErrors.rak_id} onChange={handleFieldChangeWithClear('rak_id')} submitting={isSubmitting} disabled={isLoadingRacks} />
                       </div>
-                      <button type="button" className="premium-rak-btn" onClick={() => setShowAddRakModal(true)} disabled={isSubmitting}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#D4AF37" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        <span>Tambah Rak</span>
+                      <button type="button" className="afbc-rak-btn" onClick={() => setShowAddRakModal(true)} disabled={isSubmitting}>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Tambah Rak
                       </button>
                     </div>
                   </div>
                 </div>
+              </SectionCard>
 
-                {/* ── SAMPUL BUKU ── */}
-                <div className="premium-form-section">
-                  <div className="premium-section-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Sampul Buku</div>
-                  <div
-                    className={`premium-cover-zone${dragOver ? ' drag-over' : ''}${coverPreview ? ' has-cover' : ''}`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => coverInputRef.current?.click()}
-                  >
-                    {coverPreview ? (
-                      <>
-                        <img src={coverPreview} alt="Preview" className="premium-cover-preview" />
-                        <div className="premium-cover-overlay">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                          <span>Ganti Cover</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="premium-cover-empty">
-                        <div className="premium-cover-empty-icon">
-                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                        </div>
-                        <span className="premium-cover-empty-text">Seret gambar ke sini</span>
-                        <span className="premium-cover-empty-sub">atau klik untuk memilih file</span>
-                        <button type="button" className="premium-cover-empty-btn" onClick={(e) => { e.stopPropagation(); coverInputRef.current?.click() }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                          Pilih File
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <input ref={coverInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="premium-cover-hidden-input" onChange={handleCoverChange} />
-                </div>
-
-                {/* ── RINGKASAN BUKU ── */}
-                <div className="premium-form-section">
-                  <div className="premium-section-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg> Ringkasan Buku</div>
-                  <div className="premium-field">
-                    <label className="premium-field-label">Deskripsi / Sinopsis</label>
-                    <textarea
-                      name="deskripsi"
-                      className="premium-field-input premium-field-input--textarea"
-                      placeholder="Tulis sinopsis buku..."
-                      value={bookForm.deskripsi || ''}
-                      onChange={handleFieldChange}
-                      rows={6}
-                    />
-                    <span className={`premium-field-charcount${descLength >= 500 ? ' over' : ''}`}>{descLength} / 500</span>
-                  </div>
-                </div>
-              </form>
-
-              {/* ── BUTTONS ── */}
-              <div className="premium-card-footer" style={{ margin: '0 -32px -28px', borderRadius: '0 0 20px 20px' }}>
-                <button type="button" className="premium-btn premium-btn--ghost" onClick={() => isEditing ? resetBookForm() : setActiveMenu('beranda')}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                  {isEditing ? 'Batal' : 'Kembali'}
-                </button>
-                <button type="button" className="premium-btn premium-btn--outline" onClick={handleSaveDraft}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                  Simpan Draft
-                </button>
-                <button type="submit" form="premium-form" className="premium-btn premium-btn--primary" disabled={isSubmitting}>
-                  {isSubmitting && <span className="premium-spinner" />}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                  {btnLabel}
-                </button>
-              </div>
-            </div>
-
-            {/* ─── RIGHT: PREVIEW SIDEBAR ─── */}
-            <div className="premium-form-sidebar">
-              <div className="premium-preview-card">
-                <div className="premium-preview-cover">
+              <SectionCard icon={ImageIcon} title="Sampul Buku" desc="Upload gambar sampul buku" delay={0.15}>
+                <div
+                  className={`afbc-cover-zone${dragOver ? ' afbc-cover-zone--drag' : ''}${coverPreview ? ' afbc-cover-zone--has' : ''}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => coverInputRef.current?.click()}
+                >
                   {coverPreview ? (
-                    <img src={coverPreview} alt="Preview" />
+                    <>
+                      <img src={coverPreview} alt="Preview" className="afbc-cover-preview" />
+                      <div className="afbc-cover-overlay">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <span>Ganti Cover</span>
+                      </div>
+                    </>
                   ) : (
-                    <span className="premium-preview-cover-placeholder">{(bookForm.judul || 'B').charAt(0).toUpperCase()}</span>
+                    <div className="afbc-cover-empty">
+                      <div className="afbc-cover-empty-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      </div>
+                      <span className="afbc-cover-empty-text">Seret gambar ke sini</span>
+                      <span className="afbc-cover-empty-sub">atau klik untuk memilih file</span>
+                      <button type="button" className="afbc-cover-empty-btn" onClick={(e) => { e.stopPropagation(); coverInputRef.current?.click() }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Pilih File
+                      </button>
+                    </div>
                   )}
                 </div>
-                <div className="premium-preview-body">
-                  <div className="premium-preview-title">{bookForm.judul || 'Judul Buku'}</div>
-                  <div className="premium-preview-divider" />
-                  <div className="premium-preview-row">
-                    <span className="premium-preview-label">Penulis</span>
-                    <span className="premium-preview-value">{bookForm.penulis || '—'}</span>
-                  </div>
-                  <div className="premium-preview-divider" />
-                  <div className="premium-preview-row">
-                    <span className="premium-preview-label">Tahun</span>
-                    <span className="premium-preview-value">{bookForm.tahun_terbit || '—'}</span>
-                  </div>
-                  <div className="premium-preview-divider" />
-                  <div className="premium-preview-row">
-                    <span className="premium-preview-label">Rak</span>
-                    <span className="premium-preview-value">{selectedRack?.nama_rak || '—'}</span>
-                  </div>
+                <input ref={coverInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="afbc-cover-hidden" onChange={handleCoverChange} />
+              </SectionCard>
+
+              <SectionCard icon={FileTextIcon} title="Informasi Tambahan" desc="Sinopsis atau deskripsi buku" delay={0.2}>
+                <div className="afbc-field">
+                  <label className="afbc-label">Sinopsis / Deskripsi</label>
+                  <textarea
+                    name="deskripsi"
+                    className="afbc-textarea"
+                    placeholder="Tulis sinopsis buku..."
+                    value={bookForm.deskripsi || ''}
+                    onChange={handleFieldChange}
+                  />
+                  <span className={`afbc-charcount${descLength >= 500 ? ' afbc-charcount--over' : ''}`}>{descLength} / 1000 karakter</span>
                 </div>
-                <div className="premium-preview-footer">
-                  <small>Preview otomatis berubah saat mengetik</small>
+              </SectionCard>
+            </form>
+
+            <div className="afbc-actions">
+              <button type="button" className="afbc-btn afbc-btn--ghost" onClick={() => isEditing ? resetBookForm() : setActiveMenu('beranda')}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                {isEditing ? 'Batal' : 'Kembali'}
+              </button>
+              <button type="button" className="afbc-btn afbc-btn--outline" onClick={handleSaveDraft}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Simpan Draft
+              </button>
+              <button type="submit" form="afbc-form" className="afbc-btn afbc-btn--primary" disabled={isSubmitting}>
+                {isSubmitting && <span className="afbc-spinner" />}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                {btnLabel}
+              </button>
+            </div>
+          </div>
+
+          <div className="afbc-sidebar">
+            <div className="afbc-preview-card">
+              <div className="afbc-preview-cover">
+                {coverPreview ? (
+                  <img src={coverPreview} alt="Preview" />
+                ) : (
+                  <span className="afbc-preview-placeholder">{(bookForm.judul || 'B').charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="afbc-preview-body">
+                <h3 className="afbc-preview-title">{bookForm.judul || 'Judul Buku'}</h3>
+                <div className="afbc-preview-divider" />
+                <div className="afbc-preview-row">
+                  <span className="afbc-preview-label">Penulis</span>
+                  <span className="afbc-preview-value">{bookForm.penulis || '—'}</span>
                 </div>
+                <div className="afbc-preview-divider" />
+                <div className="afbc-preview-row">
+                  <span className="afbc-preview-label">Tahun</span>
+                  <span className="afbc-preview-value">{bookForm.tahun_terbit || '—'}</span>
+                </div>
+                <div className="afbc-preview-divider" />
+                <div className="afbc-preview-row">
+                  <span className="afbc-preview-label">Rak</span>
+                  <span className="afbc-preview-value">{selectedRack?.nama_rak || '—'}</span>
+                </div>
+              </div>
+              <div className="afbc-preview-footer">
+                <span>Preview otomatis berubah</span>
               </div>
             </div>
           </div>
@@ -940,7 +917,7 @@ function DashboardAdmin() {
                     <p>Tambahkan kategori rak buku baru ke perpustakaan</p>
                   </div>
                 </div>
-                <button type="button" className="premium-modal-close" onClick={() => { setShowAddRakModal(false); setNewRakForm({ nama_rak: '', tipe_rak: '' }) }}>
+                <button type="button" className="premium-modal-close" onClick={() => { setShowAddRakModal(false); setNewRakForm({ nama_rak: '', tipe_rak: '', deskripsi: '' }) }}>
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
