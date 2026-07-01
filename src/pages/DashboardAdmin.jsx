@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import API, { resolveBackendFile, BACKEND_URL } from '../api'
+import AdminProfilSection from './AdminProfilSection'
+import AdminManageBooks from './AdminManageBooks'
 
 const menus = [
   { id: 'beranda', label: 'Beranda', icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>', description: 'Ringkasan statistik dan aktivitas perpustakaan.' },
@@ -64,7 +66,7 @@ function DashboardAdmin() {
   const [isLoadingRacks, setIsLoadingRacks] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAddRakModal, setShowAddRakModal] = useState(false)
-  const [newRakForm, setNewRakForm] = useState({ nama_rak: '', tipe_rak: '' })
+  const [newRakForm, setNewRakForm] = useState({ nama_rak: '', tipe_rak: '', deskripsi: '' })
   const [isAddingRak, setIsAddingRak] = useState(false)
   const [formMessage, setFormMessage] = useState('')
   const [formMessageTone, setFormMessageTone] = useState('info')
@@ -75,13 +77,20 @@ function DashboardAdmin() {
   const [draftSaved, setDraftSaved] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const notifBellRef = useRef(null)
+  const profileMenuRef = useRef(null)
   const [borrowStats, setBorrowStats] = useState({ aktif: 0, terlambat: 0 })
   const [totalMembers, setTotalMembers] = useState(0)
   const [allBorrows, setAllBorrows] = useState([])
   const [isLoadingBeranda, setIsLoadingBeranda] = useState(true)
 
   // STATE PROFIL
+  const [profilNama, setProfilNama] = useState(currentUser?.nama || '')
+  const [isUpdatingNama, setIsUpdatingNama] = useState(false)
+  const [profilNamaMsg, setProfilNamaMsg] = useState('')
+  const [profilNamaTone, setProfilNamaTone] = useState('info')
+
   const [profilEmail, setProfilEmail] = useState(currentUser?.email || '')
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
   const [profilEmailMsg, setProfilEmailMsg] = useState('')
@@ -500,6 +509,8 @@ function DashboardAdmin() {
 
   // LOGOUT ADMIN
   const handleLogout = () => {
+    const confirmed = window.confirm('Apakah Anda yakin ingin keluar?')
+    if (!confirmed) return
     localStorage.removeItem('currentUser')
     localStorage.removeItem('token')
     navigate('/login')
@@ -565,15 +576,18 @@ function DashboardAdmin() {
 
   // tutup dropdown saat klik di luar
   useEffect(() => {
-    if (!showNotifDropdown) return
+    if (!showNotifDropdown && !showProfileMenu) return
     const handler = (e) => {
-      if (notifBellRef.current && !notifBellRef.current.contains(e.target)) {
+      if (showNotifDropdown && notifBellRef.current && !notifBellRef.current.contains(e.target)) {
         setShowNotifDropdown(false)
+      }
+      if (showProfileMenu && profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setShowProfileMenu(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [showNotifDropdown])
+  }, [showNotifDropdown, showProfileMenu])
 
   const today = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -663,7 +677,9 @@ function DashboardAdmin() {
     if (!newRakForm.nama_rak.trim() || !newRakForm.tipe_rak.trim()) return
     try {
       setIsAddingRak(true)
-      const response = await API.post('/books/rak', newRakForm)
+      const payload = { nama_rak: newRakForm.nama_rak.trim(), tipe_rak: newRakForm.tipe_rak.trim() }
+      if (newRakForm.deskripsi?.trim()) payload.deskripsi = newRakForm.deskripsi.trim()
+      const response = await API.post('/books/rak', payload)
       if (response.data?.success) {
         await fetchRacks()
         const newRak = response.data.data
@@ -671,9 +687,16 @@ function DashboardAdmin() {
           setBookForm(prev => ({ ...prev, rak_id: String(newRak.id) }))
         }
         setShowAddRakModal(false)
-        setNewRakForm({ nama_rak: '', tipe_rak: '' })
+        setNewRakForm({ nama_rak: '', tipe_rak: '', deskripsi: '' })
+        setFormMessage('Rak berhasil ditambahkan.')
+        setFormMessageTone('success')
+        setTimeout(() => setFormMessage(''), 4000)
       }
-    } catch { /* ignore */ } finally {
+    } catch {
+      setFormMessage('Gagal menambahkan rak.')
+      setFormMessageTone('error')
+      setTimeout(() => setFormMessage(''), 4000)
+    } finally {
       setIsAddingRak(false)
     }
   }
@@ -784,10 +807,14 @@ function DashboardAdmin() {
                   <div className="premium-form-grid">
                     <Field name="tahun_terbit" label="Tahun Terbit" type="number" min={1900} max={2100} value={bookForm.tahun_terbit} error={fieldErrors.tahun_terbit} onChange={handleFieldChangeWithClear('tahun_terbit')} submitting={isSubmitting} />
                     <Field name="stok" label="Jumlah Stok" type="number" min={0} required value={bookForm.stok} error={fieldErrors.stok} onChange={handleFieldChangeWithClear('stok')} submitting={isSubmitting} />
-                    <div className="premium-field--full">
-                      <Field name="rak_id" label="Rak Buku" isSelect required options={berkasOptions} placeholder={isLoadingRacks ? 'Memuat...' : 'Pilih rak'} value={bookForm.rak_id} error={fieldErrors.rak_id} onChange={handleFieldChangeWithClear('rak_id')} submitting={isSubmitting} disabled={isLoadingRacks}
-                        extraButton={{ label: '+', onClick: () => setShowAddRakModal(true), title: 'Tambah rak baru' }}
-                      />
+                    <div className="premium-field--full premium-rak-row">
+                      <div className="premium-rak-select">
+                        <Field name="rak_id" label="Rak Buku" isSelect required options={berkasOptions} placeholder={isLoadingRacks ? 'Memuat...' : 'Pilih rak'} value={bookForm.rak_id} error={fieldErrors.rak_id} onChange={handleFieldChangeWithClear('rak_id')} submitting={isSubmitting} disabled={isLoadingRacks} />
+                      </div>
+                      <button type="button" className="premium-rak-btn" onClick={() => setShowAddRakModal(true)} disabled={isSubmitting}>
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#D4AF37" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>Tambah Rak</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -901,22 +928,60 @@ function DashboardAdmin() {
 
         {/* ── MODAL TAMBAH RAK ── */}
         {showAddRakModal && (
-          <div className="addrak-overlay" onClick={() => setShowAddRakModal(false)}>
-            <div className="addrak-modal" onClick={e => e.stopPropagation()}>
-              <div className="addrak-modal-head">
-                <h3>Tambah Rak Baru</h3>
-                <button type="button" className="addrak-modal-close" onClick={() => { setShowAddRakModal(false); setNewRakForm({ nama_rak: '', tipe_rak: '' }) }}>&times;</button>
+          <div className="premium-modal-overlay" onClick={() => setShowAddRakModal(false)}>
+            <div className="premium-modal" onClick={e => e.stopPropagation()}>
+              <div className="premium-modal-head">
+                <div className="premium-modal-head-left">
+                  <div className="premium-modal-head-icon">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                  </div>
+                  <div>
+                    <h3>Tambah Rak Baru</h3>
+                    <p>Tambahkan kategori rak buku baru ke perpustakaan</p>
+                  </div>
+                </div>
+                <button type="button" className="premium-modal-close" onClick={() => { setShowAddRakModal(false); setNewRakForm({ nama_rak: '', tipe_rak: '' }) }}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
-              <div className="addrak-modal-body">
-                <label className="addrak-label">Nama Rak <span className="required-star">*</span></label>
-                <input className="addrak-input" type="text" placeholder="Mis: Rak A" value={newRakForm.nama_rak} onChange={e => setNewRakForm(p => ({ ...p, nama_rak: e.target.value }))} disabled={isAddingRak} autoFocus />
-                <label className="addrak-label">Tipe Rak <span className="required-star">*</span></label>
-                <input className="addrak-input" type="text" placeholder="Mis: Referensi" value={newRakForm.tipe_rak} onChange={e => setNewRakForm(p => ({ ...p, tipe_rak: e.target.value }))} disabled={isAddingRak} />
+              <div className="premium-modal-body">
+                <div className="premium-modal-field">
+                  <label className="premium-modal-label">Nama Rak <span className="required-star">*</span></label>
+                  <input className="premium-modal-input" type="text" placeholder="Mis: Rak Hukum Pidana" value={newRakForm.nama_rak} onChange={e => setNewRakForm(p => ({ ...p, nama_rak: e.target.value }))} disabled={isAddingRak} autoFocus />
+                </div>
+                <div className="premium-modal-field">
+                  <label className="premium-modal-label">Tipe / Kategori Rak <span className="required-star">*</span></label>
+                  <div className="premium-modal-select-wrap">
+                    <svg className="premium-modal-select-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    <select
+                      className="premium-modal-select"
+                      value={newRakForm.tipe_rak}
+                      onChange={e => setNewRakForm(p => ({ ...p, tipe_rak: e.target.value }))}
+                      disabled={isAddingRak}
+                    >
+                      <option value="">Pilih kategori...</option>
+                      <option value="Lantai 1">Lantai 1</option>
+                      <option value="Lantai 2">Lantai 2</option>
+                      <option value="Lantai 3">Lantai 3</option>
+                      <option value="Referensi">Referensi</option>
+                      <option value="Digital">Digital</option>
+                      <option value="Multimedia">Multimedia</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="premium-modal-field">
+                  <label className="premium-modal-label">Deskripsi (opsional)</label>
+                  <input className="premium-modal-input" type="text" placeholder="Keterangan tambahan..." value={newRakForm.deskripsi || ''} onChange={e => setNewRakForm(p => ({ ...p, deskripsi: e.target.value }))} disabled={isAddingRak} />
+                </div>
               </div>
-              <div className="addrak-modal-foot">
-                <button type="button" className="addrak-btn addrak-btn--cancel" onClick={() => { setShowAddRakModal(false); setNewRakForm({ nama_rak: '', tipe_rak: '' }) }} disabled={isAddingRak}>Batal</button>
-                <button type="button" className="addrak-btn addrak-btn--submit" onClick={handleAddRak} disabled={isAddingRak || !newRakForm.nama_rak.trim() || !newRakForm.tipe_rak.trim()}>
-                  {isAddingRak ? 'Menyimpan...' : 'Simpan'}
+              <div className="premium-modal-foot">
+                <button type="button" className="premium-modal-btn premium-modal-btn--ghost" onClick={() => { setShowAddRakModal(false); setNewRakForm({ nama_rak: '', tipe_rak: '', deskripsi: '' }) }} disabled={isAddingRak}>Batal</button>
+                <button type="button" className="premium-modal-btn premium-modal-btn--primary" onClick={handleAddRak} disabled={isAddingRak || !newRakForm.nama_rak.trim() || !newRakForm.tipe_rak.trim()}>
+                  {isAddingRak ? (
+                    <><span className="premium-modal-spinner" /> Menyimpan...</>
+                  ) : (
+                    <><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tambah Rak</>
+                  )}
                 </button>
               </div>
             </div>
@@ -1136,166 +1201,112 @@ function DashboardAdmin() {
     )
   }
 
-  // ── RENDER PROFIL ADMIN ──
-  const renderProfil = () => {
-    const handleUpdateEmail = async (e) => {
-      e.preventDefault()
-      try {
-        setIsUpdatingEmail(true)
-        setProfilEmailMsg('')
-        const res = await API.put('/users/profile', { email: profilEmail.trim() })
-        if (res.data?.success) {
-          const updatedUser = { ...currentUser, email: profilEmail.trim() }
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-          setProfilEmailMsg('Email berhasil diperbarui.')
-          setProfilEmailTone('success')
-        } else {
-          setProfilEmailMsg(res.data?.message || 'Gagal memperbarui email.')
-          setProfilEmailTone('error')
-        }
-      } catch (err) {
-        setProfilEmailMsg(err.response?.data?.message || 'Gagal memperbarui email.')
+  // ── HANDLER PROFIL ──
+  const handleUpdateEmail = async (e) => {
+    e.preventDefault()
+    try {
+      setIsUpdatingEmail(true)
+      setProfilEmailMsg('')
+      const res = await API.put('/users/update-email', { user_id: currentUser.id, email: profilEmail.trim() })
+      if (res.data?.success) {
+        const updatedUser = { ...currentUser, email: profilEmail.trim() }
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+        setProfilEmailMsg('Email berhasil diperbarui.')
+        setProfilEmailTone('success')
+      } else {
+        setProfilEmailMsg(res.data?.message || 'Gagal memperbarui email.')
         setProfilEmailTone('error')
-      } finally {
-        setIsUpdatingEmail(false)
       }
+    } catch (err) {
+      setProfilEmailMsg(err.response?.data?.message || 'Gagal memperbarui email.')
+      setProfilEmailTone('error')
+    } finally {
+      setIsUpdatingEmail(false)
     }
-
-    const handleChangePassword = async (e) => {
-      e.preventDefault()
-      if (passwordForm.baru !== passwordForm.confirm) {
-        setProfilPasswordMsg('Konfirmasi password baru tidak cocok.')
-        setProfilPasswordTone('error')
-        return
-      }
-      if (passwordForm.baru.length < 6) {
-        setProfilPasswordMsg('Password baru minimal 6 karakter.')
-        setProfilPasswordTone('error')
-        return
-      }
-      try {
-        setIsUpdatingPassword(true)
-        setProfilPasswordMsg('')
-        const res = await API.put('/users/password', {
-          password_lama: passwordForm.current,
-          password_baru: passwordForm.baru,
-        })
-        if (res.data?.success) {
-          setProfilPasswordMsg('Password berhasil diubah.')
-          setProfilPasswordTone('success')
-          setPasswordForm({ current: '', baru: '', confirm: '' })
-        } else {
-          setProfilPasswordMsg(res.data?.message || 'Gagal mengubah password.')
-          setProfilPasswordTone('error')
-        }
-      } catch (err) {
-        setProfilPasswordMsg(err.response?.data?.message || 'Gagal mengubah password.')
-        setProfilPasswordTone('error')
-      } finally {
-        setIsUpdatingPassword(false)
-      }
-    }
-
-    return (
-      <div className="adm-profil">
-        <div className="adm-profil-header">
-          <div className="adm-profil-avatar">
-            {currentUser?.nama?.charAt(0)?.toUpperCase() || 'A'}
-          </div>
-          <div className="adm-profil-headline">
-            <h3>{currentUser?.nama || 'Admin'}</h3>
-            <p>{currentUser?.email || '-'}</p>
-            <span className="adm-profil-badge">Administrator</span>
-          </div>
-        </div>
-
-        <div className="adm-profil-grid">
-          {/* ── UPDATE EMAIL ── */}
-          <section className="adm-card adm-profil-card">
-            <div className="adm-card-head">
-              <h5>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
-                Update Email
-              </h5>
-            </div>
-            <form onSubmit={handleUpdateEmail} className="adm-profil-form">
-              <div className="adm-profil-field">
-                <label>Email</label>
-                <input
-                  type="email"
-                  className="adm-profil-input"
-                  value={profilEmail}
-                  onChange={(e) => setProfilEmail(e.target.value)}
-                  required
-                  disabled={isUpdatingEmail}
-                />
-              </div>
-              {profilEmailMsg && (
-                <div className={`adm-profil-msg adm-profil-msg--${profilEmailTone}`}>{profilEmailMsg}</div>
-              )}
-              <button type="submit" className="adm-btn adm-btn--primary" disabled={isUpdatingEmail}>
-                {isUpdatingEmail ? 'Menyimpan...' : 'Simpan Email'}
-              </button>
-            </form>
-          </section>
-
-          {/* ── GANTI PASSWORD ── */}
-          <section className="adm-card adm-profil-card">
-            <div className="adm-card-head">
-              <h5>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Ganti Password
-              </h5>
-            </div>
-            <form onSubmit={handleChangePassword} className="adm-profil-form">
-              <div className="adm-profil-field">
-                <label>Password Saat Ini</label>
-                <input
-                  type="password"
-                  className="adm-profil-input"
-                  value={passwordForm.current}
-                  onChange={(e) => setPasswordForm(p => ({ ...p, current: e.target.value }))}
-                  required
-                  disabled={isUpdatingPassword}
-                  autoComplete="current-password"
-                />
-              </div>
-              <div className="adm-profil-field">
-                <label>Password Baru</label>
-                <input
-                  type="password"
-                  className="adm-profil-input"
-                  value={passwordForm.baru}
-                  onChange={(e) => setPasswordForm(p => ({ ...p, baru: e.target.value }))}
-                  required
-                  disabled={isUpdatingPassword}
-                  autoComplete="new-password"
-                />
-              </div>
-              <div className="adm-profil-field">
-                <label>Konfirmasi Password Baru</label>
-                <input
-                  type="password"
-                  className="adm-profil-input"
-                  value={passwordForm.confirm}
-                  onChange={(e) => setPasswordForm(p => ({ ...p, confirm: e.target.value }))}
-                  required
-                  disabled={isUpdatingPassword}
-                  autoComplete="new-password"
-                />
-              </div>
-              {profilPasswordMsg && (
-                <div className={`adm-profil-msg adm-profil-msg--${profilPasswordTone}`}>{profilPasswordMsg}</div>
-              )}
-              <button type="submit" className="adm-btn adm-btn--primary" disabled={isUpdatingPassword}>
-                {isUpdatingPassword ? 'Menyimpan...' : 'Ubah Password'}
-              </button>
-            </form>
-          </section>
-        </div>
-      </div>
-    )
   }
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault()
+    if (passwordForm.baru !== passwordForm.confirm) {
+      setProfilPasswordMsg('Konfirmasi password baru tidak cocok.')
+      setProfilPasswordTone('error')
+      return
+    }
+    if (passwordForm.baru.length < 6) {
+      setProfilPasswordMsg('Password baru minimal 6 karakter.')
+      setProfilPasswordTone('error')
+      return
+    }
+    try {
+      setIsUpdatingPassword(true)
+      setProfilPasswordMsg('')
+      const res = await API.put('/users/update-password', {
+        user_id: currentUser.id,
+        password_lama: passwordForm.current,
+        password_baru: passwordForm.baru,
+      })
+      if (res.data?.success) {
+        setProfilPasswordMsg('Password berhasil diubah.')
+        setProfilPasswordTone('success')
+        setPasswordForm({ current: '', baru: '', confirm: '' })
+      } else {
+        setProfilPasswordMsg(res.data?.message || 'Gagal mengubah password.')
+        setProfilPasswordTone('error')
+      }
+    } catch (err) {
+      setProfilPasswordMsg(err.response?.data?.message || 'Gagal mengubah password.')
+      setProfilPasswordTone('error')
+    } finally {
+      setIsUpdatingPassword(false)
+    }
+  }
+
+  const handleUpdateNama = async (e) => {
+    e.preventDefault()
+    try {
+      setIsUpdatingNama(true)
+      setProfilNamaMsg('')
+      const res = await API.put('/users/update-nama', { user_id: currentUser.id, nama: profilNama.trim() })
+      if (res.data?.success) {
+        const updatedUser = { ...currentUser, nama: profilNama.trim() }
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+        setProfilNamaMsg('Nama berhasil diperbarui.')
+        setProfilNamaTone('success')
+      } else {
+        setProfilNamaMsg(res.data?.message || 'Gagal memperbarui nama.')
+        setProfilNamaTone('error')
+      }
+    } catch (err) {
+      setProfilNamaMsg(err.response?.data?.message || 'Gagal memperbarui nama.')
+      setProfilNamaTone('error')
+    } finally {
+      setIsUpdatingNama(false)
+    }
+  }
+
+  const renderProfil = () => (
+    <AdminProfilSection
+      currentUser={currentUser}
+      profilNama={profilNama}
+      setProfilNama={setProfilNama}
+      isUpdatingNama={isUpdatingNama}
+      profilNamaMsg={profilNamaMsg}
+      profilNamaTone={profilNamaTone}
+      handleUpdateNama={handleUpdateNama}
+      profilEmail={profilEmail}
+      setProfilEmail={setProfilEmail}
+      isUpdatingEmail={isUpdatingEmail}
+      profilEmailMsg={profilEmailMsg}
+      profilEmailTone={profilEmailTone}
+      handleUpdateEmail={handleUpdateEmail}
+      passwordForm={passwordForm}
+      setPasswordForm={setPasswordForm}
+      isUpdatingPassword={isUpdatingPassword}
+      profilPasswordMsg={profilPasswordMsg}
+      profilPasswordTone={profilPasswordTone}
+      handleChangePassword={handleChangePassword}
+    />
+  )
 
   return (
     <div className={`adm-shell${darkMode ? ' adm-shell--dark' : ''}`}>
@@ -1348,31 +1359,36 @@ function DashboardAdmin() {
               <span></span>
               <span></span>
             </button>
-            <h2>Selamat datang, <strong>{currentUser?.nama || 'Admin'}</strong></h2>
+            <div className="adm-topbar-greeting">
+              <span className="adm-topbar-hello">Selamat datang,</span>
+              <strong>{currentUser?.nama || 'Admin'}</strong>
+            </div>
             <span className="adm-topbar-date">{today}</span>
           </div>
           <div className="adm-topbar-right">
-            <div className="notif-bell-wrap" ref={notifBellRef}>
-              <button type="button" className="notif-bell" onClick={() => setShowNotifDropdown(v => !v)} title="Notifikasi">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                {unreadNotifCount > 0 && <span className="notif-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>}
+            <div className="nv-notif" ref={notifBellRef}>
+              <button type="button" className="nv-icon-btn" onClick={() => setShowNotifDropdown(v => !v)} title="Notifikasi">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadNotifCount > 0 && <span className="nv-notif-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>}
               </button>
               {showNotifDropdown && (
-                <div className="notif-dropdown">
-                  <div className="notif-dropdown-head">
+                <div className="nv-dropdown nv-dropdown--notif">
+                  <div className="nv-dropdown-head">
                     <span>Notifikasi</span>
-                    {unreadNotifCount > 0 && <button type="button" className="notif-mark-all" onClick={handleMarkAllRead}>Tandai semua dibaca</button>}
+                    {unreadNotifCount > 0 && <button type="button" className="nv-dropdown-markall" onClick={handleMarkAllRead}>Tandai dibaca</button>}
                   </div>
-                  <div className="notif-dropdown-body">
+                  <div className="nv-dropdown-body">
                     {notifications.length === 0 ? (
-                      <div className="notif-empty">Belum ada notifikasi</div>
+                      <div className="nv-dropdown-empty">Belum ada notifikasi</div>
                     ) : (
                       notifications.map(n => (
-                        <div key={n.id} className={`notif-item${!n.is_read ? ' unread' : ''}`} onClick={() => { if (!n.is_read) handleMarkRead(n.id) }}>
-                          <span className="notif-dot" />
-                          <div className="notif-content">
-                            <span className="notif-msg">{n.title || n.message}</span>
-                            <span className="notif-time">{n.created_at || ''}</span>
+                        <div key={n.id} className={`nv-notif-item${!n.is_read ? ' nv-notif-item--unread' : ''}`} onClick={() => { if (!n.is_read) handleMarkRead(n.id) }}>
+                          <span className="nv-notif-dot" />
+                          <div className="nv-notif-content">
+                            <span className="nv-notif-msg">{n.title || n.message}</span>
+                            <span className="nv-notif-time">{n.created_at || ''}</span>
                           </div>
                         </div>
                       ))
@@ -1381,19 +1397,55 @@ function DashboardAdmin() {
                 </div>
               )}
             </div>
-            <button type="button" className="adm-theme-btn" onClick={() => setDarkMode(v => !v)} title="Toggle Dark Mode">
+            <button type="button" className="nv-icon-btn adm-theme-btn" onClick={() => setDarkMode(v => !v)} title="Toggle Dark Mode">
               {darkMode ? (
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
               ) : (
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               )}
             </button>
-            <div className="adm-topbar-user">
-              <div className="adm-avatar adm-avatar--topbar">{userInitials}</div>
-              <div className="adm-topbar-userinfo">
-                <strong>{currentUser?.nama || 'Admin'}</strong>
-                <small>Administrator</small>
-              </div>
+            <div className="nv-profile" ref={profileMenuRef}>
+              <button type="button" className="nv-profile-btn" onClick={() => setShowProfileMenu(v => !v)}>
+                <div className="nv-avatar">{userInitials}</div>
+                <div className="nv-profile-info">
+                  <span className="nv-profile-name">{currentUser?.nama || 'Admin'}</span>
+                  <span className="nv-profile-email">Administrator</span>
+                </div>
+                <span className="nv-profile-role">Admin</span>
+                <svg className={`nv-profile-arrow${showProfileMenu ? ' nv-profile-arrow--open' : ''}`} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {showProfileMenu && (
+                <div className="nv-dropdown nv-dropdown--profile">
+                  <div className="nv-dropdown-profile-header">
+                    <div className="nv-dropdown-avatar">{userInitials}</div>
+                    <div className="nv-dropdown-profile-info">
+                      <strong className="nv-dropdown-name">{currentUser?.nama || 'Admin'}</strong>
+                      <span className="nv-dropdown-email">{currentUser?.email || '-'}</span>
+                    </div>
+                  </div>
+                  <div className="nv-dropdown-menu">
+                    <button type="button" className="nv-dropdown-item" onClick={() => { setActiveMenu('profil'); setShowProfileMenu(false) }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      Profil Saya
+                    </button>
+                    <button type="button" className="nv-dropdown-item" onClick={() => { setShowProfileMenu(false) }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                      Pengaturan
+                    </button>
+                  </div>
+                  <div className="nv-dropdown-footer">
+                    <button type="button" className="nv-dropdown-logout" onClick={() => { handleLogout(); setShowProfileMenu(false) }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      Keluar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -1417,50 +1469,18 @@ function DashboardAdmin() {
           {activeMenu === 'update-buku' && (
             <>
               {editingBookId && renderBookFormCard()}
-              <section className="adm-card" style={{ marginTop: 24 }}>
-                <div className="adm-card-head">
-                  <h5>Cari & Update Buku</h5>
-                  <span className="adm-card-badge">{filteredBooks.length} buku</span>
-                </div>
-                <input
-                  type="search"
-                  className="adm-search"
-                  placeholder="Cari berdasarkan judul, barcode, penulis, atau rak..."
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                />
-                <div className="adm-book-list">
-                  {isLoadingBooks ? (
-                    [1,2,3,4].map(i => <div key={i} className="adm-skeleton-row"><div className="adm-skeleton-dot"/><div className="adm-skeleton-line w-70"/></div>)
-                  ) : filteredBooks.length === 0 ? (
-                    <div className="adm-empty">
-                      <strong>Belum ada data buku yang cocok.</strong>
-                      <small>Tambahkan buku baru atau ubah kata kunci pencarian.</small>
-                    </div>
-                  ) : (
-                    filteredBooks.map((book) => (
-                      <div key={book.id} className="adm-book-item">
-                        <div className="adm-book-item-cover">
-                          {book.cover_buku ? <img src={resolveBackendFile(book.cover_buku)} alt="" /> : <span>{book.judul?.charAt(0) || 'B'}</span>}
-                        </div>
-                        <div className="adm-book-item-body">
-                          <strong>{book.judul}</strong>
-                          <small>{book.penulis || 'Penulis belum diisi'} | {book.penerbit || '-'}</small>
-                          <div className="adm-book-item-tags">
-                            <span className="adm-tag">{book.nama_rak || '-'}</span>
-                            <span className="adm-tag">Stok {book.stok}</span>
-                            <span className="adm-tag">{book.barcode}</span>
-                          </div>
-                        </div>
-                        <div className="adm-book-item-actions">
-                          <button type="button" className="adm-btn adm-btn--outline" onClick={() => loadBookToForm(book)}>Edit</button>
-                          <button type="button" className="adm-btn adm-btn--danger" onClick={() => handleDeleteBook(book)}>Hapus</button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </section>
+              <AdminManageBooks
+                books={books}
+                racks={racks}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                isLoadingBooks={isLoadingBooks}
+                filteredBooks={filteredBooks}
+                loadBookToForm={loadBookToForm}
+                handleDeleteBook={handleDeleteBook}
+                setActiveMenu={setActiveMenu}
+                onEditBook={() => setActiveMenu('tambah-buku')}
+              />
             </>
           )}
         </div>

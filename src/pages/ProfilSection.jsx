@@ -1,10 +1,35 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import KartuAnggotaSection from './KartuAnggotaSection'
 import RequestBukuSection from './RequestBukuSection'
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 
-function ProfilSection({ currentUser, activeBorrows, loanHistory }) {
+const EyeIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+
+const EyeOffIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+)
+
+function ProfilSection({
+  currentUser, activeBorrows, loanHistory,
+  profilNama, setProfilNama, isUpdatingNama, profilNamaMsg, profilNamaTone, handleUpdateNama,
+  profilEmail, setProfilEmail, isUpdatingEmail, profilEmailMsg, profilEmailTone, handleUpdateEmail,
+  passwordForm, setPasswordForm, isUpdatingPassword, profilPasswordMsg, profilPasswordTone, handleChangePassword
+}) {
+  const [showPasswords, setShowPasswords] = useState({ current: false, baru: false, confirm: false })
+
+  const toggleShow = (field) => {
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }))
+  }
   const profileInfo = [
     { label: 'Nama Lengkap', value: currentUser?.nama || '-' },
     { label: 'Email', value: currentUser?.email || '-' },
@@ -105,6 +130,139 @@ function ProfilSection({ currentUser, activeBorrows, loanHistory }) {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="borrower-section-card">
+        <div className="section-heading">
+          <p>Pengaturan</p>
+          <h3>Update Nama Lengkap</h3>
+        </div>
+        <form onSubmit={handleUpdateNama} style={{ padding: '0 0 4px' }}>
+          <div className="borrower-input-group">
+            <label>Nama Lengkap</label>
+            <div className="borrower-input-wrap">
+              <input
+                type="text"
+                className="borrower-input"
+                value={profilNama}
+                onChange={(e) => setProfilNama(e.target.value)}
+                required
+                disabled={isUpdatingNama}
+                placeholder="Nama lengkap"
+              />
+            </div>
+          </div>
+          {profilNamaMsg && (
+            <div className={`borrower-msg borrower-msg--${profilNamaTone}`}>
+              {profilNamaMsg}
+            </div>
+          )}
+          <button type="submit" className="borrower-btn borrower-btn--primary" disabled={isUpdatingNama}>
+            {isUpdatingNama ? 'Menyimpan...' : 'Simpan Nama'}
+          </button>
+        </form>
+      </section>
+
+      <section className="borrower-section-card">
+        <div className="section-heading">
+          <p>Pengaturan</p>
+          <h3>Update Email</h3>
+        </div>
+        <form onSubmit={handleUpdateEmail} style={{ padding: '0 0 4px' }}>
+          <div className="borrower-input-group">
+            <label>Alamat Email</label>
+            <div className="borrower-input-wrap">
+              <input
+                type="email"
+                className="borrower-input"
+                value={profilEmail}
+                onChange={(e) => setProfilEmail(e.target.value)}
+                required
+                disabled={isUpdatingEmail}
+                placeholder="nama@email.com"
+              />
+            </div>
+          </div>
+          {profilEmailMsg && (
+            <div className={`borrower-msg borrower-msg--${profilEmailTone}`}>
+              {profilEmailMsg}
+            </div>
+          )}
+          <button type="submit" className="borrower-btn borrower-btn--primary" disabled={isUpdatingEmail}>
+            {isUpdatingEmail ? 'Menyimpan...' : 'Simpan Email'}
+          </button>
+        </form>
+      </section>
+
+      <section className="borrower-section-card">
+        <div className="section-heading">
+          <p>Pengaturan</p>
+          <h3>Ganti Password</h3>
+        </div>
+        <form onSubmit={handleChangePassword} style={{ padding: '0 0 4px' }}>
+          <div className="borrower-input-group">
+            <label>Password Saat Ini</label>
+            <div className="borrower-input-wrap">
+              <input
+                type={showPasswords.current ? 'text' : 'password'}
+                className="borrower-input"
+                value={passwordForm.current}
+                onChange={(e) => setPasswordForm(p => ({ ...p, current: e.target.value }))}
+                required
+                disabled={isUpdatingPassword}
+                autoComplete="current-password"
+                placeholder="Masukkan password saat ini"
+              />
+              <button type="button" className="borrower-input-toggle" onClick={() => toggleShow('current')} tabIndex={-1}>
+                {showPasswords.current ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+          </div>
+          <div className="borrower-input-group">
+            <label>Password Baru</label>
+            <div className="borrower-input-wrap">
+              <input
+                type={showPasswords.baru ? 'text' : 'password'}
+                className="borrower-input"
+                value={passwordForm.baru}
+                onChange={(e) => setPasswordForm(p => ({ ...p, baru: e.target.value }))}
+                required
+                disabled={isUpdatingPassword}
+                autoComplete="new-password"
+                placeholder="Minimal 6 karakter"
+              />
+              <button type="button" className="borrower-input-toggle" onClick={() => toggleShow('baru')} tabIndex={-1}>
+                {showPasswords.baru ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+          </div>
+          <div className="borrower-input-group">
+            <label>Konfirmasi Password Baru</label>
+            <div className="borrower-input-wrap">
+              <input
+                type={showPasswords.confirm ? 'text' : 'password'}
+                className="borrower-input"
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm(p => ({ ...p, confirm: e.target.value }))}
+                required
+                disabled={isUpdatingPassword}
+                autoComplete="new-password"
+                placeholder="Ketik ulang password baru"
+              />
+              <button type="button" className="borrower-input-toggle" onClick={() => toggleShow('confirm')} tabIndex={-1}>
+                {showPasswords.confirm ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+          </div>
+          {profilPasswordMsg && (
+            <div className={`borrower-msg borrower-msg--${profilPasswordTone}`}>
+              {profilPasswordMsg}
+            </div>
+          )}
+          <button type="submit" className="borrower-btn borrower-btn--primary" disabled={isUpdatingPassword}>
+            {isUpdatingPassword ? 'Menyimpan...' : 'Ubah Password'}
+          </button>
+        </form>
       </section>
 
       <KartuAnggotaSection currentUser={currentUser} />

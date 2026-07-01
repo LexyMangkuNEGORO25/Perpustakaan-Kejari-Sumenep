@@ -1,32 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import API, { BACKEND_URL } from '../api'
 import BerandaSection from './BerandaSection'
 import PeminjamanSection from './PeminjamanSection'
 import RiwayatSection from './RiwayatSection'
 import ProfilSection from './ProfilSection'
+import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import BookCard from '../components/BookCard'
 import BookDetailModal from '../components/BookDetailModal'
-
-const navItems = [
-  {
-    id: 'beranda', label: 'Beranda',
-    icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
-  },
-  {
-    id: 'peminjaman', label: 'Peminjaman',
-    icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>'
-  },
-  {
-    id: 'riwayat', label: 'Riwayat',
-    icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
-  },
-  {
-    id: 'profil', label: 'Profil',
-    icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
-  },
-]
 
 const readStoredUser = () => {
   try {
@@ -49,23 +31,25 @@ function DashboardPeminjam() {
   const [dashboardMessage, setDashboardMessage] = useState('')
   const [messageTone, setMessageTone] = useState('info')
   const [bookingBookId, setBookingBookId] = useState(null)
-  const navRef = useRef(null)
-  const [indicatorStyle, setIndicatorStyle] = useState({})
-  const [showMobileNav, setShowMobileNav] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
   const [categoryView, setCategoryView] = useState(null)
   const [notifications, setNotifications] = useState([])
-  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
-  const notifBellRef = useRef(null)
-  const [userBorrows, setUserBorrows] = useState([])
   const [selectedBook, setSelectedBook] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  // ── Profile update state ──
+  const [profilNama, setProfilNama] = useState(currentUser?.nama || '')
+  const [isUpdatingNama, setIsUpdatingNama] = useState(false)
+  const [profilNamaMsg, setProfilNamaMsg] = useState('')
+  const [profilNamaTone, setProfilNamaTone] = useState('info')
+
+  const [profilEmail, setProfilEmail] = useState(currentUser?.email || '')
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
+  const [profilEmailMsg, setProfilEmailMsg] = useState('')
+  const [profilEmailTone, setProfilEmailTone] = useState('info')
+  const [passwordForm, setPasswordForm] = useState({ current: '', baru: '', confirm: '' })
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [profilPasswordMsg, setProfilPasswordMsg] = useState('')
+  const [profilPasswordTone, setProfilPasswordTone] = useState('info')
 
   const loadDashboardData = useCallback(async () => {
     if (!currentUser?.id) return
@@ -86,7 +70,6 @@ function DashboardPeminjam() {
       setAllBooks(Array.isArray(allBooksResponse.data) ? allBooksResponse.data : [])
       setRacks(Array.isArray(racksResponse.data) ? racksResponse.data : [])
       setActiveBorrows(Array.isArray(activeResponse.data) ? activeResponse.data : [])
-      setUserBorrows(Array.isArray(historyResponse.data) ? historyResponse.data : [])
       setLoanHistory(
         (Array.isArray(historyResponse.data) ? historyResponse.data : [])
           .filter(b => ['dikembalikan', 'dibatalkan'].includes(b.status) || Boolean(b.tanggal_dikembalikan))
@@ -97,17 +80,6 @@ function DashboardPeminjam() {
     } finally {
       setIsLoading(false)
     }
-  }, [currentUser])
-
-  const fetchNotifications = useCallback(async () => {
-    if (!currentUser?.id) return
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/notifications/user/${currentUser.id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      })
-      const json = await res.json()
-      setNotifications(Array.isArray(json.data) ? json.data : [])
-    } catch { /* ignore */ }
   }, [currentUser])
 
   const unreadNotifCount = notifications.filter(n => !n.is_read).length
@@ -136,10 +108,19 @@ function DashboardPeminjam() {
   // polling notifikasi
   useEffect(() => {
     if (!currentUser?.id) return
-    fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30000)
+    const poll = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/notifications/user/${currentUser.id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        })
+        const json = await res.json()
+        if (Array.isArray(json.data)) setNotifications(json.data)
+      } catch { /* ignore */ }
+    }
+    poll()
+    const interval = setInterval(poll, 30000)
     return () => clearInterval(interval)
-  }, [currentUser, fetchNotifications])
+  }, [currentUser])
 
   // polling + refresh data buku saat tab aktif
   useEffect(() => {
@@ -160,18 +141,6 @@ function DashboardPeminjam() {
     }
   }, [currentUser, loadDashboardData])
 
-  // tutup dropdown saat klik di luar
-  useEffect(() => {
-    if (!showNotifDropdown) return
-    const handler = (e) => {
-      if (notifBellRef.current && !notifBellRef.current.contains(e.target)) {
-        setShowNotifDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showNotifDropdown])
-
   useEffect(() => {
     if (!currentUser) { navigate('/login'); return }
     if (currentUser.role && currentUser.role !== 'peminjam') { navigate('/admin/dashboard'); return }
@@ -179,26 +148,8 @@ function DashboardPeminjam() {
     return () => clearTimeout(t)
   }, [currentUser, loadDashboardData, navigate])
 
-  useEffect(() => {
-    if (!navRef.current) return
-    const activeBtn = navRef.current.querySelector(`[data-nav="${activeSection}"]`)
-    if (activeBtn) {
-      const navRect = navRef.current.getBoundingClientRect()
-      const btnRect = activeBtn.getBoundingClientRect()
-      setIndicatorStyle({
-        width: btnRect.width,
-        transform: `translateX(${btnRect.left - navRect.left}px)`,
-      })
-    }
-  }, [activeSection])
-
   const activeLoanCount = useMemo(() =>
     activeBorrows.filter(b => ['booking', 'dipinjam', 'terlambat', 'menunggu_pembayaran'].includes(b.status)).length,
-    [activeBorrows]
-  )
-
-  const overdueCount = useMemo(() =>
-    activeBorrows.filter(b => b.status === 'terlambat').length,
     [activeBorrows]
   )
 
@@ -236,14 +187,9 @@ function DashboardPeminjam() {
     return map
   }, [allBooks])
 
-  const nearestDueDate = useMemo(() => {
-    const sorted = [...activeBorrows]
-      .filter(b => b.tanggal_kembali || b.batas_ambil)
-      .sort((a, b) => new Date(a.tanggal_kembali || a.batas_ambil) - new Date(b.tanggal_kembali || b.batas_ambil))
-    return sorted[0] ? formatDate(sorted[0].tanggal_kembali || sorted[0].batas_ambil) : 'Belum ada'
-  }, [activeBorrows])
-
   const handleLogout = () => {
+    const confirmed = window.confirm('Apakah Anda yakin ingin keluar?')
+    if (!confirmed) return
     localStorage.removeItem('currentUser')
     localStorage.removeItem('token')
     navigate('/login')
@@ -291,6 +237,89 @@ function DashboardPeminjam() {
     setSelectedBook(null)
   }
 
+  // ── HANDLER PROFIL ──
+  const handleUpdateEmail = async (e) => {
+    e.preventDefault()
+    try {
+      setIsUpdatingEmail(true)
+      setProfilEmailMsg('')
+      const res = await API.put('/users/update-email', { user_id: currentUser.id, email: profilEmail.trim() })
+      if (res.data?.success) {
+        const updatedUser = { ...currentUser, email: profilEmail.trim() }
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+        setProfilEmailMsg('Email berhasil diperbarui.')
+        setProfilEmailTone('success')
+      } else {
+        setProfilEmailMsg(res.data?.message || 'Gagal memperbarui email.')
+        setProfilEmailTone('error')
+      }
+    } catch (err) {
+      setProfilEmailMsg(err.response?.data?.message || 'Gagal memperbarui email.')
+      setProfilEmailTone('error')
+    } finally {
+      setIsUpdatingEmail(false)
+    }
+  }
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault()
+    if (passwordForm.baru !== passwordForm.confirm) {
+      setProfilPasswordMsg('Konfirmasi password baru tidak cocok.')
+      setProfilPasswordTone('error')
+      return
+    }
+    if (passwordForm.baru.length < 6) {
+      setProfilPasswordMsg('Password baru minimal 6 karakter.')
+      setProfilPasswordTone('error')
+      return
+    }
+    try {
+      setIsUpdatingPassword(true)
+      setProfilPasswordMsg('')
+      const res = await API.put('/users/update-password', {
+        user_id: currentUser.id,
+        password_lama: passwordForm.current,
+        password_baru: passwordForm.baru,
+      })
+      if (res.data?.success) {
+        setProfilPasswordMsg('Password berhasil diubah.')
+        setProfilPasswordTone('success')
+        setPasswordForm({ current: '', baru: '', confirm: '' })
+      } else {
+        setProfilPasswordMsg(res.data?.message || 'Gagal mengubah password.')
+        setProfilPasswordTone('error')
+      }
+    } catch (err) {
+      setProfilPasswordMsg(err.response?.data?.message || 'Gagal mengubah password.')
+      setProfilPasswordTone('error')
+    } finally {
+      setIsUpdatingPassword(false)
+    }
+  }
+
+  const handleUpdateNama = async (e) => {
+    e.preventDefault()
+    try {
+      setIsUpdatingNama(true)
+      setProfilNamaMsg('')
+      const res = await API.put('/users/update-nama', { user_id: currentUser.id, nama: profilNama.trim() })
+      if (res.data?.success) {
+        const updatedUser = { ...currentUser, nama: profilNama.trim() }
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+        setProfilNamaMsg('Nama berhasil diperbarui.')
+        setProfilNamaTone('success')
+      } else {
+        setProfilNamaMsg(res.data?.message || 'Gagal memperbarui nama.')
+        setProfilNamaTone('error')
+      }
+    } catch (err) {
+      setProfilNamaMsg(err.response?.data?.message || 'Gagal memperbarui nama.')
+      setProfilNamaTone('error')
+    } finally {
+      setIsUpdatingNama(false)
+    }
+  }
+
   const categoryBooks = categoryView ? (booksByRak[categoryView] || []) : []
 
   const avatarLetter = currentUser?.nama?.charAt(0)?.toUpperCase() || 'U'
@@ -298,99 +327,17 @@ function DashboardPeminjam() {
 
   return (
     <div className="borrower-page">
-      <header className={`borrower-navbar${scrolled ? ' borrower-navbar--scrolled' : ''}`}>
-        <div className="borrower-navbar-inner">
-          <div className="borrower-navbar-left">
-            <div className="borrower-navbar-logo">
-              <img src="/kejaksaan-logo.png" alt="Logo Kejaksaan RI" />
-            </div>
-            <div className="borrower-navbar-text">
-              <span className="borrower-navbar-sub">Kejaksaan Negeri Sumenep</span>
-              <h1 className="borrower-navbar-title">Perpustakaan Hukum</h1>
-            </div>
-          </div>
-
-          <nav ref={navRef} className={`borrower-navbar-nav${showMobileNav ? ' open' : ''}`}>
-            <div className="borrower-navbar-indicator" style={indicatorStyle} />
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                data-nav={item.id}
-                className={activeSection === item.id ? 'active' : ''}
-                onClick={() => { setActiveSection(item.id); setShowMobileNav(false) }}
-              >
-                <span className="navbar-nav-icon" dangerouslySetInnerHTML={{ __html: item.icon }} />
-                <span>{item.label}</span>
-                {item.id === 'peminjaman' && activeLoanCount > 0 && (
-                  <span className="navbar-nav-badge">{activeLoanCount}</span>
-                )}
-              </button>
-            ))}
-          </nav>
-
-          <div className="borrower-navbar-right">
-            <button
-              type="button"
-              className="borrower-navbar-hamburger"
-              onClick={() => setShowMobileNav(v => !v)}
-              aria-label="Buka navigasi"
-            >
-              <span></span>
-              <span></span>
-              <span></span>
-            </button>
-
-            <div className="borrower-navbar-user">
-              <div className="borrower-navbar-avatar">{avatarLetter}</div>
-              <div className="borrower-navbar-userinfo">
-                <strong>{currentUser?.nama || 'User'}</strong>
-                <small>{namaDepan} — Anggota</small>
-              </div>
-            </div>
-
-            <div className="notif-bell-wrap" ref={notifBellRef}>
-              <button type="button" className="notif-bell" onClick={() => setShowNotifDropdown(v => !v)} title="Notifikasi">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                {unreadNotifCount > 0 && <span className="notif-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>}
-              </button>
-              {showNotifDropdown && (
-                <div className="notif-dropdown">
-                  <div className="notif-dropdown-head">
-                    <span>Notifikasi</span>
-                    {unreadNotifCount > 0 && <button type="button" className="notif-mark-all" onClick={handleMarkAllRead}>Tandai semua dibaca</button>}
-                  </div>
-                  <div className="notif-dropdown-body">
-                    {notifications.length === 0 ? (
-                      <div className="notif-empty">Belum ada notifikasi</div>
-                    ) : (
-                      notifications.map(n => (
-                        <div key={n.id} className={`notif-item${!n.is_read ? ' unread' : ''}`} onClick={() => { if (!n.is_read) handleMarkRead(n.id) }}>
-                          <span className="notif-dot" />
-                          <div className="notif-content">
-                            <span className="notif-msg">{n.title || n.message}</span>
-                            <span className="notif-time">{n.created_at || ''}</span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button type="button" className="borrower-navbar-logout" onClick={handleLogout} title="Keluar">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              <span>Keluar</span>
-            </button>
-          </div>
-        </div>
-        <div className="borrower-navbar-gold" />
-      </header>
+      <Navbar
+        currentUser={currentUser}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        notifications={notifications}
+        unreadNotifCount={unreadNotifCount}
+        onMarkRead={handleMarkRead}
+        onMarkAllRead={handleMarkAllRead}
+        activeLoanCount={activeLoanCount}
+        onLogout={handleLogout}
+      />
 
       <main className="borrower-main-content">
         <section className="borrower-hero">
@@ -578,6 +525,24 @@ function DashboardPeminjam() {
                 currentUser={currentUser}
                 activeBorrows={activeBorrows}
                 loanHistory={loanHistory}
+                profilNama={profilNama}
+                setProfilNama={setProfilNama}
+                isUpdatingNama={isUpdatingNama}
+                profilNamaMsg={profilNamaMsg}
+                profilNamaTone={profilNamaTone}
+                handleUpdateNama={handleUpdateNama}
+                profilEmail={profilEmail}
+                setProfilEmail={setProfilEmail}
+                isUpdatingEmail={isUpdatingEmail}
+                profilEmailMsg={profilEmailMsg}
+                profilEmailTone={profilEmailTone}
+                handleUpdateEmail={handleUpdateEmail}
+                passwordForm={passwordForm}
+                setPasswordForm={setPasswordForm}
+                isUpdatingPassword={isUpdatingPassword}
+                profilPasswordMsg={profilPasswordMsg}
+                profilPasswordTone={profilPasswordTone}
+                handleChangePassword={handleChangePassword}
               />
             )}
           </div>
@@ -642,13 +607,6 @@ function DashboardPeminjam() {
       <Footer />
     </div>
   )
-}
-
-function formatDate(value, fallback = 'Belum tersedia') {
-  if (!value) return fallback
-  try {
-    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(value))
-  } catch { return fallback }
 }
 
 export default DashboardPeminjam
