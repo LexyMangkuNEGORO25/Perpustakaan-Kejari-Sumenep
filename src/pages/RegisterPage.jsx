@@ -39,6 +39,8 @@ function RegisterPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => { document.title = 'Daftar | Perpustakaan Hukum' }, [])
+
   const [ktpBase64, setKtpBase64] = useState('')
 
   const [showCamera, setShowCamera] = useState(false)

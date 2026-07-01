@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import API from '../api'
 import Footer from '../components/Footer'
@@ -39,6 +39,8 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => { document.title = 'Login | Perpustakaan Hukum' }, [])
   const [shakeForm, setShakeForm] = useState(false)
   const [success, setSuccess] = useState(false)
   const navigate = useNavigate()

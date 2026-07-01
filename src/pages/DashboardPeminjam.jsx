@@ -33,6 +33,9 @@ function DashboardPeminjam() {
   const [bookingBookId, setBookingBookId] = useState(null)
   const [categoryView, setCategoryView] = useState(null)
   const [notifications, setNotifications] = useState([])
+
+  const pageTitles = { beranda: 'Beranda', peminjaman: 'Peminjaman', riwayat: 'Riwayat', profil: 'Profil' }
+  useEffect(() => { document.title = `${pageTitles[activeSection] || 'Beranda'} | Perpustakaan Hukum` }, [activeSection])
   const [selectedBook, setSelectedBook] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 

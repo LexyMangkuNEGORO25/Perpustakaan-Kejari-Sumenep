@@ -10,6 +10,8 @@ function LandingPage() {
   const [books, setBooks] = useState([])
   const [totalBooks, setTotalBooks] = useState(0)
 
+  useEffect(() => { document.title = 'Perpustakaan Hukum | Kejaksaan Negeri Sumenep' }, [])
+
   useEffect(() => {
     const user = (() => { try { return JSON.parse(localStorage.getItem('currentUser') || 'null') } catch { return null } })()
     if (user) {

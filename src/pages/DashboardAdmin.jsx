@@ -53,6 +53,11 @@ function DashboardAdmin() {
 
   const [activeMenu, setActiveMenu] = useState(menus[0].id)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+
+  useEffect(() => {
+    const menu = menus.find(m => m.id === activeMenu)
+    document.title = `Dashboard Admin${menu ? ` - ${menu.label}` : ''} | Perpustakaan Hukum`
+  }, [activeMenu])
   const [bookForm, setBookForm] = useState(initialBookForm)
   const [coverFile, setCoverFile] = useState(null)
   const [coverFileName, setCoverFileName] = useState('')
